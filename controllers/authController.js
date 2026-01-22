@@ -11,27 +11,38 @@ const generateToken = (id) => {
 // @route   POST /admin/login
 // @access  Public
 const authAdmin = async (req, res) => {
-    const { email, password } = req.body;
-    console.log(`Login attempt for: ${email}`);
+    try {
+        const { email, password } = req.body;
+        console.log(`Login attempt for: ${email}`);
 
-    const admin = await Admin.findOne({ email });
+        const admin = await Admin.findOne({ email });
 
-    if (!admin) {
-        console.log('Admin not found');
-        return res.status(401).json({ message: 'Invalid email or password' });
-    }
+        if (!admin) {
+            console.log('Admin not found');
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
 
-    const isMatch = await admin.matchPassword(password);
-    console.log(`Password match: ${isMatch}`);
+        const isMatch = await admin.matchPassword(password);
+        console.log(`Password match outcome: ${isMatch}`);
 
-    if (isMatch) {
-        res.json({
-            _id: admin._id,
-            email: admin.email,
-            token: generateToken(admin._id),
+        if (isMatch) {
+            const token = generateToken(admin._id);
+            res.json({
+                _id: admin._id,
+                email: admin.email,
+                token: token,
+            });
+        } else {
+            console.log('Password mismatch');
+            res.status(401).json({ message: 'Invalid email or password' });
+        }
+    } catch (error) {
+        console.error('SERVER ERROR IN authAdmin:', error);
+        res.status(500).json({
+            message: 'Internal Server Error',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'production' ? null : error.stack
         });
-    } else {
-        res.status(401).json({ message: 'Invalid email or password' });
     }
 };
 
