@@ -25,6 +25,10 @@ const shipmentSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    expectedDeliveryDate: {
+        type: Date,
+        required: true
+    },
     history: [
         {
             status: { type: String, required: true },

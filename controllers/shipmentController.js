@@ -16,12 +16,12 @@ const generateTrackingId = () => {
 // @access  Private
 const createShipment = async (req, res) => {
     try {
-        const { sender, receiver, origin, destination } = req.body;
+        const { sender, receiver, origin, destination, expectedDeliveryDate } = req.body;
 
         // Validate required fields
-        if (!sender || !receiver || !origin || !destination) {
-            return res.status(400).json({ 
-                message: 'Missing required fields: sender, receiver, origin, destination' 
+        if (!sender || !receiver || !origin || !destination || !expectedDeliveryDate) {
+            return res.status(400).json({
+                message: 'Missing required fields: sender, receiver, origin, destination, expectedDeliveryDate'
             });
         }
 
@@ -31,6 +31,7 @@ const createShipment = async (req, res) => {
             trackingId,
             sender,
             receiver,
+            expectedDeliveryDate,
             currentStatus: 'Shipment Created',
             currentLocation: origin,
             history: [{
@@ -108,13 +109,22 @@ const getAllShipments = async (req, res) => {
 // @access  Private
 const updateShipment = async (req, res) => {
     try {
-        const shipment = await Shipment.findById(req.params.id);
+        const { id } = req.params;
+        let shipment;
+
+        // Try finding by internal ID if it's a valid ObjectId, otherwise try trackingId
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            shipment = await Shipment.findById(id);
+        } else {
+            shipment = await Shipment.findOne({ trackingId: id });
+        }
 
         if (shipment) {
             shipment.sender = req.body.sender || shipment.sender;
             shipment.receiver = req.body.receiver || shipment.receiver;
             shipment.currentStatus = req.body.currentStatus || shipment.currentStatus;
             shipment.currentLocation = req.body.currentLocation || shipment.currentLocation;
+            shipment.expectedDeliveryDate = req.body.expectedDeliveryDate || shipment.expectedDeliveryDate;
 
             const updatedShipment = await shipment.save();
             res.json(updatedShipment);
